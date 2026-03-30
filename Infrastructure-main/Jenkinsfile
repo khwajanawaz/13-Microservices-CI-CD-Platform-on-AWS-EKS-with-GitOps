@@ -123,8 +123,8 @@ pipeline {
             steps {
                 sh '''
                     cd Infrastructure-main/2-eks
-                    terraform init -reconfigure -input=false
-                    terraform destroy -auto-approve
+                    terraform init -reconfigure -input=false || true
+                    terraform destroy -auto-approve -lock=false || true
                 '''
             }
         }
@@ -134,8 +134,8 @@ pipeline {
             steps {
                 sh '''
                     cd Infrastructure-main/1-network
-                    terraform init -reconfigure -input=false
-                    terraform destroy -auto-approve
+                    terraform init -reconfigure -input=false || true
+                    terraform destroy -auto-approve -lock=false || true
                 '''
             }
         }
@@ -145,8 +145,8 @@ pipeline {
             steps {
                 sh '''
                     cd Infrastructure-main/0-bootstrap
-                    terraform init -input=false
-                    terraform destroy -auto-approve
+                    terraform init -input=false || true
+                    terraform destroy -auto-approve -lock=false || true
                 '''
             }
         }
