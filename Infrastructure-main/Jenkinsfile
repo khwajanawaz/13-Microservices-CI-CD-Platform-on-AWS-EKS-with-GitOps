@@ -17,6 +17,15 @@ pipeline {
 
     stages {
 
+        stage('Check AWS Identity') {
+            steps {
+                sh '''
+                    aws sts get-caller-identity
+                    aws configure list || true
+                '''
+            }
+        }
+
         stage('Plan: 0-bootstrap') {
             when { expression { params.terraformAction == 'apply' } }
             steps {
@@ -123,8 +132,42 @@ pipeline {
             steps {
                 sh '''
                     cd Infrastructure-main/2-eks
-                    terraform init -reconfigure -input=false || true
-                    terraform destroy -auto-approve -lock=false || true
+                    terraform init -reconfigure -input=false || echo "terraform init failed in 2-eks, continuing"
+                    terraform destroy -auto-approve -lock=false || echo "terraform destroy failed or nothing left in 2-eks"
+                '''
+            }
+        }
+
+        stage('Delete NAT Gateway') {
+            when { expression { params.terraformAction == 'destroy' } }
+            steps {
+                sh '''
+                    echo "Checking NAT Gateways in ${AWS_DEFAULT_REGION} ..."
+                    aws ec2 describe-nat-gateways \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'NatGateways[*].[NatGatewayId,State,VpcId]' \
+                      --output table || true
+
+                    for nat in $(aws ec2 describe-nat-gateways \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'NatGateways[?State!=`deleted`].NatGatewayId' \
+                      --output text); do
+                        echo "Deleting NAT Gateway: $nat"
+                        aws ec2 delete-nat-gateway --nat-gateway-id "$nat" --region ${AWS_DEFAULT_REGION} || true
+                    done
+                '''
+            }
+        }
+
+        stage('Check NAT Gateway After Delete') {
+            when { expression { params.terraformAction == 'destroy' } }
+            steps {
+                sh '''
+                    echo "NAT Gateway status after delete request:"
+                    aws ec2 describe-nat-gateways \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'NatGateways[*].[NatGatewayId,State,VpcId]' \
+                      --output table || true
                 '''
             }
         }
@@ -134,8 +177,8 @@ pipeline {
             steps {
                 sh '''
                     cd Infrastructure-main/1-network
-                    terraform init -reconfigure -input=false || true
-                    terraform destroy -auto-approve -lock=false || true
+                    terraform init -reconfigure -input=false || echo "terraform init failed in 1-network, continuing"
+                    terraform destroy -auto-approve -lock=false || echo "terraform destroy failed or nothing left in 1-network"
                 '''
             }
         }
@@ -145,8 +188,48 @@ pipeline {
             steps {
                 sh '''
                     cd Infrastructure-main/0-bootstrap
-                    terraform init -input=false || true
-                    terraform destroy -auto-approve -lock=false || true
+                    terraform init -input=false || echo "terraform init failed in 0-bootstrap, continuing"
+                    terraform destroy -auto-approve -lock=false || echo "terraform destroy failed or nothing left in 0-bootstrap"
+                '''
+            }
+        }
+
+        stage('Final AWS Check') {
+            when { expression { params.terraformAction == 'destroy' } }
+            steps {
+                sh '''
+                    echo "=== EKS Clusters ==="
+                    aws eks list-clusters --region ${AWS_DEFAULT_REGION} || true
+
+                    echo "=== NAT Gateways ==="
+                    aws ec2 describe-nat-gateways \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'NatGateways[*].[NatGatewayId,State,VpcId]' \
+                      --output table || true
+
+                    echo "=== VPCs ==="
+                    aws ec2 describe-vpcs \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'Vpcs[*].[VpcId,IsDefault,CidrBlock,State]' \
+                      --output table || true
+
+                    echo "=== Subnets ==="
+                    aws ec2 describe-subnets \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'Subnets[*].[SubnetId,VpcId,CidrBlock,AvailabilityZone]' \
+                      --output table || true
+
+                    echo "=== Internet Gateways ==="
+                    aws ec2 describe-internet-gateways \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'InternetGateways[*].[InternetGatewayId,Attachments]' \
+                      --output table || true
+
+                    echo "=== Security Groups ==="
+                    aws ec2 describe-security-groups \
+                      --region ${AWS_DEFAULT_REGION} \
+                      --query 'SecurityGroups[*].[GroupId,GroupName,VpcId]' \
+                      --output table || true
                 '''
             }
         }
@@ -158,6 +241,9 @@ pipeline {
         }
         failure {
             echo "Pipeline failed. Check the stage logs above."
+        }
+        always {
+            echo "Pipeline finished."
         }
     }
 }
