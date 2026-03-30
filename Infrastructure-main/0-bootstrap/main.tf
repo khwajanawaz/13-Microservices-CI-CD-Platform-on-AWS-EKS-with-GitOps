@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "tf_state" {
-  bucket = "productsShop-infra-statefile-backup"
+  bucket = "khwajanawaz-13microservices-tf-state-20260330"
 }
 
 resource "aws_s3_bucket_versioning" "tf_state" {
