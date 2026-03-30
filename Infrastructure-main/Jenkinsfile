@@ -36,10 +36,10 @@ pipeline {
                 sh 'cd terraform/0-bootstrap && terraform init -input=false'
                 // Import existing resources into state if they already exist in AWS
                 // '|| true' ensures pipeline does not fail if resource does not exist yet (first run)
-                sh 'cd terraform/0-bootstrap && terraform import aws_s3_bucket.tf_state quantamvector-infra-statefile-backup || true'
-                sh 'cd terraform/0-bootstrap && terraform import aws_dynamodb_table.tf_lock quantamvector-terraform-locks || true'
-                sh 'cd terraform/0-bootstrap && terraform plan -out tfplan'
-                sh 'cd terraform/0-bootstrap && terraform show -no-color tfplan > tfplan.txt'
+                sh 'cd Infrastructure-main/0-bootstrap && terraform import aws_s3_bucket.tf_state quantamvector-infra-statefile-backup || true'
+                sh 'cd Infrastructure-main/0-bootstrap && terraform import aws_dynamodb_table.tf_lock quantamvector-terraform-locks || true'
+                sh 'cd Infrastructure-main/0-bootstrap && terraform plan -out tfplan'
+                sh 'cd Infrastructure-main/0-bootstrap && terraform show -no-color tfplan > tfplan.txt'
             }
         }
 
@@ -64,9 +64,9 @@ pipeline {
         stage('Plan: 1-network') {
             when { expression { params.terraformAction == 'apply' } }
             steps {
-                sh 'cd terraform/1-network && terraform init -input=false'
-                sh 'cd terraform/1-network && terraform plan -out tfplan'
-                sh 'cd terraform/1-network && terraform show -no-color tfplan > tfplan.txt'
+                sh 'cd Infrastructure-main/1-network && terraform init -input=false'
+                sh 'cd Infrastructure-main/1-network && terraform plan -out tfplan'
+                sh 'cd Infrastructure-main/1-network && terraform show -no-color tfplan > tfplan.txt'
             }
         }
 
@@ -91,9 +91,9 @@ pipeline {
         stage('Plan: 2-eks') {
             when { expression { params.terraformAction == 'apply' } }
             steps {
-                sh 'cd terraform/2-eks && terraform init -input=false'
-                sh 'cd terraform/2-eks && terraform plan -out tfplan'
-                sh 'cd terraform/2-eks && terraform show -no-color tfplan > tfplan.txt'
+                sh 'cd Infrastructure-main/2-eks && terraform init -input=false'
+                sh 'cd Infrastructure-main/2-eks && terraform plan -out tfplan'
+                sh 'cd Infrastructure-main/2-eks && terraform show -no-color tfplan > tfplan.txt'
             }
         }
 
@@ -111,7 +111,7 @@ pipeline {
         stage('Apply: 2-eks') {
             when { expression { params.terraformAction == 'apply' } }
             steps {
-                sh 'cd terraform/2-eks && terraform apply -input=false tfplan'
+                sh 'cd Infrastructure-main/2-eks && terraform apply -input=false tfplan'
             }
         }
 
@@ -120,16 +120,16 @@ pipeline {
         stage('Destroy: 2-eks') {
             when { expression { params.terraformAction == 'destroy' } }
             steps {
-                sh 'cd terraform/2-eks && terraform init -input=false'
-                sh 'cd terraform/2-eks && terraform destroy -auto-approve'
+                sh 'cd Infrastructure-main/2-eks && terraform init -input=false'
+                sh 'cd Infrastructure-main/2-eks && terraform destroy -auto-approve'
             }
         }
 
         stage('Destroy: 1-network') {
             when { expression { params.terraformAction == 'destroy' } }
             steps {
-                sh 'cd terraform/1-network && terraform init -input=false'
-                sh 'cd terraform/1-network && terraform destroy -auto-approve'
+                sh 'cd Infrastructure-main/1-network && terraform init -input=false'
+                sh 'cd Infrastructure-main/1-network && terraform destroy -auto-approve'
             }
         }
 
