@@ -156,7 +156,7 @@ Subnets are tagged so the AWS Load Balancer Controller can auto-discover them:
 |---|---|---|
 | `project` | `productsShop` | Used in all resource names and tags |
 | `vpc_cidr` | `10.0.0.0/16` | CIDR block for the VPC |
-| `azs` | `["us-west-2a", "us-west-2b"]` | Availability zones to deploy into |
+| `azs` | `["us-east-1", "us-east-1"]` | Availability zones to deploy into |
 
 ### Outputs
 
@@ -223,7 +223,7 @@ This pulls `vpc_id`, `private_subnet_ids`, and `public_subnet_ids` directly from
 | `cluster_name` | EKS cluster name |
 | `cluster_endpoint` | API server endpoint for `kubectl` |
 | `cluster_certificate_authority_data` | Certificate data for authentication |
-| `region` | AWS region (`us-west-2`) |
+| `region` | AWS region (`us-east-1`) |
 
 ---
 
@@ -407,12 +407,12 @@ Destroy: 0-bootstrap  → removes S3 bucket and DynamoDB last
 
 | Item | Value |
 |---|---|
-| AWS Region | `us-west-2` |
+| AWS Region | `us-east-1` |
 | Project Name | `productsShop` |
 | EKS Cluster | `productsShop` |
 | Kubernetes Version | `1.30` |
 | VPC CIDR | `10.0.0.0/16` |
-| Availability Zones | `us-west-2a`, `us-west-2b` |
+| Availability Zones | `us-east-1`, `us-east-1` |
 | S3 State Bucket | `productsShop-infra-statefile-backup` |
 | DynamoDB Lock Table | `productsShop-terraform-locks` |
 | Node Instance Type | `c7i-flex.large` |
